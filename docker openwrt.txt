@@ -1,0 +1,61 @@
+相信大家都遇到过拉取网上的openwrt想要的插件别人的固件没有加入，或者加入的太多看着不安逸（我就是）。    本文将教给大家如何将自编译的openwrt固件直接导入玩客云docker内运行。如何编译不做过多介绍，网上大把的教程。头三个选择AT91-sama5-ama5d3。
+
+     编译完成后大家会得到两个压缩的文件sdcard是U盘SD卡使用的，另外个rootfs.tar结尾的就是docker使用的。
+
+将本地编译的openwrt-at91-sama5-microchip_sama5d3-xplained-rootfs.tar上传到玩客云根目录下（其他目录参照修改）
+创建容器镜像
+docker import openwrt-at91-sama5-microchip_sama5d3-xplained-rootfs .tar.gz openwrt:1
+
+结尾的lean_openwrt为镜像名，可以随意改变为自己喜欢的。
+启动容器
+docker run -itd --name=openwrt --restart=always --network=macnet --privileged=true openwrt:1 /sbin/init
+
+更改openwrt管理地址配置
+docker exec -it 64afa56a5f20 /bin/sh
+编辑 vi  /etc/config/network
+找到lan下的option ipaddr改为自己对应的管理IP
+重启OpenWRT网络服务
+/etc/init.d/network restart
+推出docker
+exit
+重启网卡生效
+/etc/init.d/networking restart
+
+🔵修复宿主无网络
+
+vi /etc/network/interfaces
+
+auto eth0
+
+iface eth0 inet manual
+
+auto macvlan
+
+iface macvlan inet dhcp
+
+hwaddress 00:22:bc:fb:45:54
+
+pre-up ip link add macvlan link eth0 type macvlan mode bridge
+
+post-down ip link del macvlan link eth0 type macvlan mode bridge
+
+1、首先使用docker -s -a命令列出所有容器
+
+  docker ps -a
+
+ 2、然后使用docker stop命令停止要删除的容器
+
+
+  docker stop <CONTAINER ID|NAME>
+
+3、现在使用以下命令删除单个或多个容器。
+
+
+   docker rm <CONTAINER ID|NAME> <CONTAINER ID|NAME>
+
+注：还可以使用以下命令一次删除所有停止的容器。
+
+
+docker rm $(docker ps -a -q)
+
+至此本文教程结束。希望大家的玩客云都用上喜欢的插件。
